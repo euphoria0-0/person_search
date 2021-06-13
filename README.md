@@ -11,10 +11,8 @@
 ### Training
 
 1. Download CUHK-SYSU dataset and unzip it in person_search/dataset.
-2. Run ```data_preprocessing.py``` for pre-processing dataset
-3. Run ```simclr_training.py``` for training SimCLR
-4. Run ```person_detect.py``` for training Faster R-CNN for Person Detection
-5. Run ```person_reID.py``` for computing similarities for Person Re-identification
+2. Run ```simclr_training.py``` for representation learning.
+3. Run ```PersonSearch.py``` for person search.
 
 ### Source codes
 1) Dataset folder tree
@@ -59,6 +57,7 @@ person_search
  +-- custom_data
  |   |
  |   +-- dataset.py (our own implementation)
+ |   +-- data_preprocessing.py (our own implementation)
  |   +-- contrastive_learning.py
  |   +-- view_generator.py
  |   +-- gaussian_blur.py
@@ -75,9 +74,6 @@ person_search
  +-- checkpoints (to be appeared during training step)
  +-- results (to be appeared during testing step)
  |
- +-- data_preprocessing.py (our own implementation)
  +-- simclr_training.py
- +-- person_detect.py
- +-- person_reID.py (our own implementation)
- +-- person_reID_only.py (our own implementation)
+ +-- PersonSearch.py
 ```

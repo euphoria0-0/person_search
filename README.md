@@ -17,7 +17,7 @@
 5. Run ```person_reID.py``` for computing similarities for Person Re-identification
 
 ### Source codes
-1)Dataset folder tree
+1) Dataset folder tree
 
     person_search
      |
@@ -47,19 +47,19 @@
                  +-- images.csv
                  +-- TestG50_data.csv	
 
-2)Code tree
+2) Code tree
 
     person_search
      |
      +-- custom_data
      |   |
-     |   +-- dataset.py
+     |   +-- dataset.py (our own implementation)
      |   +-- contrastive_learning.py
      |   +-- view_generator.py
      |   +-- gaussian_blur.py
      +-- models
      |   |
-     |   +-- pretrained_model.py
+     |   +-- pretrained_model.py (our own implementation)
      |   +-- resnet_simclr.py
      |   +-- simclr.py
      |
@@ -69,8 +69,8 @@
      +-- checkpoints (to be appeared during training step)
      +-- results (to be appeared during testing step)
      |
-     +-- data_preprocessing.py
+     +-- data_preprocessing.py (our own implementation)
      +-- simclr_training.py
      +-- person_detect.py
-     +-- person_reID.py
-     +-- person_reID_only.py
+     +-- person_reID.py (our own implementation)
+     +-- person_reID_only.py (our own implementation)

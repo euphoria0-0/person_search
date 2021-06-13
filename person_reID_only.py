@@ -91,6 +91,7 @@ def main(args):
     ## similarity
     test_features = test_features[~torch.any(test_features.isnan(), dim=1)]
     test_features = test_features[~torch.any(test_features.isinf(), dim=1)]
+
     target_features = target_features[~torch.any(target_features.isnan(), dim=1)]
     target_features = target_features[~torch.any(target_features.isinf(), dim=1)]
 

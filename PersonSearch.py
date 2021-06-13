@@ -1,29 +1,38 @@
 '''
-Person Re-IDentification
+Person Search
 
-Reference:
-    None (for my own implementation)
+Implementation Reference
+    Person Detection
+        Faster R-CNN & DataSet class
+        https://pytorch.org/tutorials/intermediate/torchvision_tutorial.html
+    Person Re-Identification
+        None (Our own implementation)
+
+Before you run this file,
+1. download CUHK-SYSU dataset and unzip it in dataset folder.
+2. run simclr_training.py for training SimCLR(representation learner).
 '''
 import os
-from scipy.io import loadmat
-from datetime import datetime
 import argparse
-from sklearn.metrics.pairwise import cosine_similarity
+import cv2
 import numpy as np
 from imageio import imread
+from scipy.io import loadmat
+from sklearn.metrics.pairwise import cosine_similarity
 from tqdm import tqdm
+from datetime import datetime
 
 import torch
+from torch.utils.data import DataLoader, Subset
 import torchvision.transforms as T
 import torchvision.datasets as D
 import torch.nn.functional as F
-from torch.utils.data import DataLoader, Subset
 
 from torchvision_utils.engine import train_one_epoch, evaluate
 from torchvision_utils import utils
-
-from models import pretrained_model
 from custom_data.dataset import CUHKSYSUDataset
+from custom_data.data_preprocessing import data_preprocessing
+from models import pretrained_model
 
 
 def get_args():
@@ -31,7 +40,10 @@ def get_args():
     parser.add_argument('--gpu_id', type=int, default=0, help='gpu cuda index')
     parser.add_argument('--data_dir', type=str, default='dataset/CUHK-SYSU/', help='data directory')
     parser.add_argument('--num_epochs', type=int, default=10, help='number of epochs')
-    parser.add_argument('--pretrained_model', type=str, default='model_epoch49_2021-06-12-19-06-07.pth', help='pretrained model name')
+    parser.add_argument('--pretrained_simclr', type=str, default='checkpoint_1000.pth.tar',
+                        help='pretrained SimCLR model file name')
+    parser.add_argument('--pretrained_fasterrcnn', type=str, default='model_epoch49_2021-06-12-19-06-07.pth',
+                        help='pretrained Faster R-CNN model file name')
     parser.add_argument('--evaluate', action='store_true', default=False, help='only evaluate')
     args = parser.parse_args()
     return args
@@ -65,13 +77,40 @@ def get_train_test_images(data_dir):
     # random.shuffle(test_indices)
     return train_indices, test_indices
 
+def draw_detection_results(model, data_loader, device, data_dir):
+    model.eval()
+    # draw image and bounding boxes to check performance of object detection
+    img_ids = list(sorted(os.listdir(data_dir + 'Image/SSM')))
+    for image, target in data_loader:
+        image = list(img.to(device) for img in image)
+        target = target[0]
+        img_name = img_ids[target['image_id']]
+        gt_boxes = target['boxes']
+        output = model(image)
+        print('image name {} # of boxes {}'.format(img_name, target['num'].item()))
+        out_boxes = output[0]['boxes']
+        # draw bboxes
+        img = imread(data_dir + 'Image/SSM/' + img_name)
+        for i in range(target['num']):
+            box = out_boxes[i, :]
+            gt_box = gt_boxes[i, :]
+            cv2.rectangle(img, (box[1], box[0]), (box[3], box[2]), (0, 0, 255), 2)
+            cv2.rectangle(img, (gt_box[1], gt_box[0]), (gt_box[3], gt_box[2]), (255, 0, 0), 2)
+
+        now = datetime.now().isoformat().replace('T', '-').replace(':', '-')
+        cv2.imwrite(data_dir + 'Image/SSM/bbox/img_{}_{}boxes_{}.jpg'.format(img_name.replace('.jpg', ''), target['num'].item(), now), img)
+        break  # check only one image
+
 
 def main(args):
     device = torch.device(f"cuda:{args.gpu_id}" if torch.cuda.is_available() else "cpu")
     torch.cuda.set_device(device)  # change allocation of current GPU
     print('Current cuda device ', torch.cuda.current_device())  # check
 
-    # data preparation
+    ## 1. Data preparation
+    
+    data_preprocessing(args.data_dir)
+
     dataset = CUHKSYSUDataset(args.data_dir, train=True)
     dataset_test = CUHKSYSUDataset(args.data_dir, train=False)
 
@@ -86,18 +125,51 @@ def main(args):
     data_loader_test = DataLoader(dataset_test, batch_size=1, shuffle=False,
                                   num_workers=0, collate_fn=utils.collate_fn)
 
-    # make (or load) Faster R-CNN model
+    ### 2. Person Detection
+
+    # make model (Faster R-CNN)
     model = pretrained_model.load_pretrained_faster_rcnn()
-    checkpoint = torch.load('checkpoints/fasterrcnn/model_epoch49_2021-06-12-19-06-07.pth')
-    model.load_state_dict(checkpoint['model_state_dict'])
+    if args.pretrained_model is not None:
+        checkpoint = torch.load('checkpoints/fasterrcnn/'+args.pretrained_fasterrcnn)
+        model.load_state_dict(checkpoint['model_state_dict'])
     model = model.to(device)
-    model.eval()
+
+    ## train Faster R-CNN
+    print('Training Faster R-CNN')
+    params = [p for p in model.parameters() if p.requires_grad]
+    optimizer = torch.optim.SGD(params, lr=0.005, momentum=0.9, weight_decay=0.0005)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
+
+    for epoch in range(args.num_epochs):
+        train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq=100)
+        lr_scheduler.step()
+        # print('evaluate start')
+        # evaluate(model, data_loader_test, device=device)
+        # print('evaluate end')
+        now = datetime.now().isoformat().replace('T', '-').replace(':', '-')
+        torch.save({
+            'epoch': epoch,
+            'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+        }, 'checkpoints/fasterrcnn/model_epoch{}_{}.pth'.format(epoch, now))
+        if epoch % 10 == 0 and epoch > 0:
+            print('Evaluation on epoch {}'.format(epoch))
+            evaluate(model, data_loader_test, device=device)
+
+    ## evaluate Faster R-CNN
+    # show results of object detection
+    draw_detection_results(model, data_loader, device, args.data_dir)
+
+    print('Test Faster R-CNN')
+    # compute mAP
+    evaluate(model, data_loader_test, device=device)
+
+
+    ### 3. Person Re-Identification
 
     # load SimCLR model
-    simclr_model = pretrained_model.load_trained_simclr_model(device)
+    simclr_model = pretrained_model.load_trained_simclr_model(device, args.pretrained_simclr)
     simclr_model.eval()
-
-    print('EVALUATE! ================')
 
     # inference of target images using SimCLR
     # input: target images
@@ -112,7 +184,7 @@ def main(args):
     target_reps = torch.empty((0, 128)).to(device)
     for images, target in data_loader_target:
         images = torch.stack(images).to(device)
-        target_rep = simclr_model(images) # inference
+        target_rep = simclr_model(images)  # inference
         target_reps = torch.cat((target_reps, target_rep), dim=0)
 
     # prediction of detected images (by Faster R-CNN) using SimCLR
@@ -127,30 +199,29 @@ def main(args):
         image = list(img.to(device) for img in image)
         target = target[0]
         img_name = img_ids[target['image_id']]
-        #gt_boxes = target['boxes']
         output = model(image)
         print('image name {} # of boxes {}'.format(img_name, target['num'].item()))
         out_boxes = output[0]['boxes']
         if out_boxes.size()[0] > 0:
             img_names.append(img_name)
-            crops = torch.empty((0,3,250,85))
+            crops = torch.empty((0, 3, 250, 85))
             img = imread(args.data_dir + 'Image/SSM/' + img_name)
-            for i in range(min(target['num'],out_boxes.size()[0])):
-                box = list(map(int, out_boxes[i,:])) # predicted bounding box
-                crop = img[box[0]:box[2],box[1]:box[3]] # cropped image
+            for i in range(min(target['num'], out_boxes.size()[0])):
+                box = list(map(int, out_boxes[i, :]))  # predicted bounding box
+                crop = img[box[0]:box[2], box[1]:box[3]]  # cropped image
                 if crop.shape[0] * crop.shape[1] * crop.shape[2] == 0:
                     skip_flag = True
                     continue
                 crop = crop.reshape(3, crop.shape[0], crop.shape[1])
                 crop = torch.unsqueeze(torch.Tensor(crop), 0)
-                crop = F.interpolate(crop, (250,85)) # resize cropped image
-                crops = torch.cat((crops, crop), dim=0) # stack them
+                crop = F.interpolate(crop, (250, 85))  # resize cropped image
+                crops = torch.cat((crops, crop), dim=0)  # stack them
             if not skip_flag:
                 crops = crops.to(device)
                 out_rep = simclr_model(crops)
                 out_reps = torch.cat((out_reps, out_rep), dim=0)
 
-    # matching similarity
+    ## matching similarity
     # input: representations of target persons and detected persons
     # output: similarity matrix and predicted person ID
     print('Similarity')
@@ -167,7 +238,8 @@ def main(args):
     indices = torch.argmax(torch.Tensor(similarity), dim=1).tolist()
     # save predicted IDs
     result_ids = list(np.array(ids)[indices])
-    with open("checkpoints/results/result-{}.txt".format(datetime.now().isoformat().replace('T', '-').replace(':', '-')[:-7]), 'w') as f:
+    with open("checkpoints/results/result-{}.txt".format(
+            datetime.now().isoformat().replace('T', '-').replace(':', '-')[:-7]), 'w') as f:
         for s in result_ids:
             f.write(str(s) + '\n')
     # evaluate results: mAP

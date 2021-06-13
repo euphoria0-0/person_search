@@ -1,4 +1,4 @@
-## Person Search Term Project
+# Person Search Term Project
 
 ### Requirements
 
@@ -33,6 +33,7 @@ person_search
          |       | 
          |       +-- TestG50
          |       +-- Train_only1
+         |
          +-- annotation
          |   | 
          |   +-- Images.mat
@@ -43,6 +44,7 @@ person_search
          |       +-- train_test
          |           | 
          |           +-- TestG50.mat
+         |
          +-- processed (to be appeared by data_preprocessing.py)
              | 
              +-- images.csv
@@ -60,9 +62,10 @@ person_search
  |   +-- contrastive_learning.py
  |   +-- view_generator.py
  |   +-- gaussian_blur.py
+ |
  +-- models
  |   |
- |   +-- pretrained_model.py (our own implementation)
+ |   +-- pretrained_model.py
  |   +-- resnet_simclr.py
  |   +-- simclr.py
  |

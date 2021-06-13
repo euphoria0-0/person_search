@@ -19,6 +19,7 @@
 ### Source codes
 1) Dataset folder tree
 
+```
     person_search
      |
      +-- dataset
@@ -46,9 +47,11 @@
                  | 
                  +-- images.csv
                  +-- TestG50_data.csv	
+```
 
 2) Code tree
 
+```
     person_search
      |
      +-- custom_data
@@ -74,3 +77,4 @@
      +-- person_detect.py
      +-- person_reID.py (our own implementation)
      +-- person_reID_only.py (our own implementation)
+```

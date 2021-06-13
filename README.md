@@ -20,61 +20,61 @@
 1) Dataset folder tree
 
 ```
-    person_search
+person_search
+ |
+ +-- dataset
      |
-     +-- dataset
+     +-- CUHK-SYSU
          |
-         +-- CUHK-SYSU
-             |
-             +-- Image
-             |   |
-             |   +-- SSM
-             |   +-- bbox (to be appeared by data_preprocessing.py)
-             |       | 
-             |       +-- TestG50
-             |       +-- Train_only1
-             +-- annotation
-             |   | 
-             |   +-- Images.mat
-             |   +-- Person.mat
-             |   +-- pool.mat
-             |   +-- test
-             |       | 
-             |       +-- train_test
-             |           | 
-             |           +-- TestG50.mat
-             +-- processed (to be appeared by data_preprocessing.py)
-                 | 
-                 +-- images.csv
-                 +-- TestG50_data.csv	
+         +-- Image
+         |   |
+         |   +-- SSM
+         |   +-- bbox (to be appeared by data_preprocessing.py)
+         |       | 
+         |       +-- TestG50
+         |       +-- Train_only1
+         +-- annotation
+         |   | 
+         |   +-- Images.mat
+         |   +-- Person.mat
+         |   +-- pool.mat
+         |   +-- test
+         |       | 
+         |       +-- train_test
+         |           | 
+         |           +-- TestG50.mat
+         +-- processed (to be appeared by data_preprocessing.py)
+             | 
+             +-- images.csv
+             +-- TestG50_data.csv	
 ```
 
 2) Code tree
 
 ```
-    person_search
-     |
-     +-- custom_data
-     |   |
-     |   +-- dataset.py (our own implementation)
-     |   +-- contrastive_learning.py
-     |   +-- view_generator.py
-     |   +-- gaussian_blur.py
-     +-- models
-     |   |
-     |   +-- pretrained_model.py (our own implementation)
-     |   +-- resnet_simclr.py
-     |   +-- simclr.py
-     |
-     +-- simclr_utils
-     +-- torchvision_utils
-     +-- vision
-     +-- checkpoints (to be appeared during training step)
-     +-- results (to be appeared during testing step)
-     |
-     +-- data_preprocessing.py (our own implementation)
-     +-- simclr_training.py
-     +-- person_detect.py
-     +-- person_reID.py (our own implementation)
-     +-- person_reID_only.py (our own implementation)
+person_search
+ |
+ +-- custom_data
+ |   |
+ |   +-- dataset.py (our own implementation)
+ |   +-- contrastive_learning.py
+ |   +-- view_generator.py
+ |   +-- gaussian_blur.py
+ +-- models
+ |   |
+ |   +-- pretrained_model.py (our own implementation)
+ |   +-- resnet_simclr.py
+ |   +-- simclr.py
+ |
+ +-- simclr_utils
+ +-- torchvision_utils
+ +-- vision
+ +-- checkpoints (to be appeared during training step)
+ +-- results (to be appeared during testing step)
+ |
+ +-- data_preprocessing.py (our own implementation)
+ +-- simclr_training.py
+ +-- person_detect.py
+ +-- person_reID.py (our own implementation)
+ +-- person_reID_only.py (our own implementation)
 ```
